@@ -1,5 +1,6 @@
-<h1>RAG Based Application.</h1>
-<p>This project demonstrates how to build a spam mail detection model using machine learning. The model is built using logistic regression and TF-IDF vectorization. Here’s a step-by-step explanation of how I implemented this project:</p>
+<h1>Document Query Assistant with LangChain and Ollama</h1>
+<p>This project demonstrates how to build a document query assistant using machine learning and natural language processing. The assistant is built using LangChain for document processing, vectorization, and similarity search, with Ollama models for generating responses. The assistant answers user queries based on the content of an uploaded PDF document. Here’s a step-by-step explanation of how I implemented this project:</p>
+
 
 <h2>1. Importing Necessary Libraries</h2>
 
