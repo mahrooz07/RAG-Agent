@@ -1,80 +1,163 @@
-Modules and their Uses:
-streamlit (st):
+<h1>RAG Based Application.</h1>
+<p>This project demonstrates how to build a spam mail detection model using machine learning. The model is built using logistic regression and TF-IDF vectorization. Here’s a step-by-step explanation of how I implemented this project:</p>
 
-Purpose: Streamlit is used to create the interactive web application. It helps build the UI and handle user interactions (like file uploads and displaying chat messages).
-Key Functions Used:
-st.markdown(): Used for injecting custom HTML/CSS into the application.
-st.title(): Sets the title of the application.
-st.file_uploader(): Provides an interface for the user to upload PDF files.
-st.chat_input(): Creates a text input box where the user can type questions.
-st.write(): Displays content on the page.
-st.success(): Displays success messages.
-st.spinner(): Shows a spinner while the system is working (e.g., processing a query).
-st.chat_message(): Used for displaying chat messages (both user and assistant).
-langchain_ollama.llms.OllamaLLM:
+<h2>1. Importing Necessary Libraries</h2>
 
-Purpose: This module allows you to use Ollama's language models for generating text-based responses to queries.
-Key Functions Used:
-OllamaLLM(model): Initializes the language model with a specific model. The model is used for generating responses based on the prompt.
-langchain_ollama.OllamaEmbeddings:
+<pre>
+import streamlit as st
+from langchain_ollama.llms import OllamaLLM
+from langchain_ollama import OllamaEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.vectorstores import InMemoryVectorStore
+from langchain_community.document_loaders import PDFPlumberLoader
+</pre>
 
-Purpose: Used to create embeddings (vector representations) of the document text, which are useful for searching and comparing document chunks based on similarity.
-Key Functions Used:
-OllamaEmbeddings(model): Initializes the embedding model for generating vector representations of text.
-langchain_text_splitters.RecursiveCharacterTextSplitter:
+<p>This section imports the necessary libraries for the project. The <code>streamlit</code> library is used for building the interactive user interface (UI). The LangChain libraries handle tasks like text processing, document chunking, embedding generation, and similarity search, allowing the model to interact with the uploaded PDF documents and answer user queries.</p>
 
-Purpose: This module is used for splitting the document into smaller chunks, ensuring that each chunk is within a manageable size and overlaps with neighboring chunks.
-Key Functions Used:
-RecursiveCharacterTextSplitter(chunk_size, chunk_overlap, add_start_index): Splits the document into chunks with a defined character size and overlap between chunks. add_start_index=True adds an index to each chunk for easier tracking.
-langchain_core.prompts.ChatPromptTemplate:
+<h2>2. Customizing the Streamlit UI</h2>
 
-Purpose: This module allows you to create custom prompts for the language model. It structures the input for the LLM, ensuring it knows how to format the output based on the query and document context.
-Key Functions Used:
-ChatPromptTemplate.from_template(PROMPT_TEMPLATE): Creates a chat prompt template based on the provided PROMPT_TEMPLATE, which is later used to generate the assistant's response.
-langchain_core.vectorstores.InMemoryVectorStore:
+<pre>
+st.markdown("""
+    <style>
+    .stApp { ... }
+    .stChatInput input { ... }
+    .stChatMessage[data-testid="stChatMessage"]:nth-child(odd) { ... }
+    .stChatMessage[data-testid="stChatMessage"]:nth-child(even) { ... }
+    .stFileUploader { ... }
+    h1, h2, h3 { ... }
+    </style>
+""", unsafe_allow_html=True)
+</pre>
 
-Purpose: This module provides an in-memory storage solution for vectors (embeddings). It stores and retrieves document embeddings based on similarity searches.
-Key Functions Used:
-InMemoryVectorStore(embedding_model): Initializes the vector store with an embedding model, allowing the storage of vectorized document chunks.
-add_documents(documents): Adds documents (in this case, text chunks) to the vector store.
-similarity_search(query): Searches the stored vectors for the most relevant chunks of text based on the query's similarity.
-langchain_community.document_loaders.PDFPlumberLoader:
+<p>The UI is customized with CSS styles to modify the appearance of the chat interface. This includes styling the background color, text colors, input fields, and chat messages for a visually appealing and user-friendly experience.</p>
 
-Purpose: This module is used to load and extract text from PDF files. It helps in converting a PDF document into a structured format that can be processed further.
-Key Functions Used:
-PDFPlumberLoader(file_path): Loads a PDF document from a specified path.
-load(): Extracts text content from the loaded PDF document.
-Functions and their Uses:
-save_uploaded_file(uploaded_file):
+<h2>3. Defining the Prompt Template</h2>
 
-Purpose: Saves the uploaded PDF file to the server’s local storage.
-Input: The uploaded file (uploaded_file).
-Output: Returns the file path where the PDF is saved.
-load_pdf_documents(file_path):
+<pre>
+PROMPT_TEMPLATE = """
+You are an expert research assistant. Use the provided context to answer the query. 
+If unsure, state that you don't know. Be concise and factual (max 3 sentences).
 
-Purpose: Loads the PDF document from the given path and extracts its content.
-Input: Path to the saved PDF file (file_path).
-Output: A list of document content, where each document represents one page from the PDF.
-chunk_documents(raw_documents):
+Query : {user_query}
+Context: {document_context}
+Answer:
+"""
+</pre>
 
-Purpose: Splits the raw document (PDF content) into smaller chunks for better processing and indexing.
-Input: A list of documents (raw_documents).
-Output: A list of text chunks, each of which is smaller in size and can be indexed individually.
-index_documents(document_chunks):
+<p>This is the <strong>prompt template</strong> that guides the language model (LLM) in generating concise, factual answers to user queries. The context from the document is provided along with the user's question to ensure the LLM understands the context and responds appropriately.</p>
 
-Purpose: Adds the processed document chunks into an in-memory vector store for easy searching later on.
-Input: A list of document chunks (document_chunks).
-Output: None (the function performs the action of adding the chunks to the vector store).
-find_related_documents(query):
+<h2>4. Saving the Uploaded File</h2>
 
-Purpose: Searches the vector store to find the most relevant document chunks based on the user’s query.
-Input: The user query (query).
-Output: A list of document chunks that are most relevant to the query, based on similarity.
-generate_answer(user_query, context_documents):
+<pre>
+def save_uploaded_file(uploaded_file):
+    file_path = PDF_STORAGE_PATH + uploaded_file.name
+    with open(file_path,"wb") as file:
+        file.write(uploaded_file.getbuffer())
+    return file_path
+</pre>
 
-Purpose: Uses the context of related documents and the user’s query to generate a response using a language model.
-Input: The user's query (user_query) and a list of related documents (context_documents).
-Output: A response (text) generated by the language model based on the provided context and query.
-Summary:
-Modules are used to handle the core functionalities like loading PDFs, splitting them into chunks, generating embeddings, and performing similarity searches. They also enable the creation of custom prompts for the language model.
-Functions are designed to process the uploaded PDF, chunk the content, index it for fast retrieval, and generate a response to the user's query by searching for related document chunks.
+<p>This function is responsible for saving the uploaded PDF file to the server's local storage, so that it can be processed and used for answering queries.</p>
+
+<h2>5. Loading the PDF Document</h2>
+
+<pre>
+def load_pdf_documents(file_path):
+    document_loader = PDFPlumberLoader(file_path)
+    return document_loader.load()
+</pre>
+
+<p>This function uses <code>PDFPlumberLoader</code> to load and extract the content from the uploaded PDF file.</p>
+
+<h2>6. Splitting the Document into Chunks</h2>
+
+<pre>
+def chunk_documents(raw_documents):
+    text_processor = RecursiveCharacterTextSplitter(
+        chunk_size = 1000,
+        chunk_overlap = 200,
+        add_start_index = True
+    )
+    return text_processor.split_documents(raw_documents)
+</pre>
+
+<p>This function splits the raw PDF content into smaller, manageable chunks for easier processing. The chunk size is set to 1000 characters, with an overlap of 200 characters between chunks. This ensures the model has enough context when processing each chunk.</p>
+
+<h2>7. Indexing the Documents</h2>
+
+<pre>
+def index_documents(document_chunks):
+    return DOCUMENT_VECTOR_DB.add_documents(document_chunks)
+</pre>
+
+<p>This function adds the document chunks to an in-memory vector store, which allows the application to later perform similarity searches and retrieve relevant chunks based on the user's query.</p>
+
+<h2>8. Finding Related Documents</h2>
+
+<pre>
+def find_related_documents(query):
+    return DOCUMENT_VECTOR_DB.similarity_search(query)
+</pre>
+
+<p>This function searches the vector store for the most relevant document chunks based on the similarity to the user's query. It returns the top matching chunks.</p>
+
+<h2>9. Generating the Answer</h2>
+
+<pre>
+def generate_answer(user_query, context_documents):
+    context_text = "\n\n".join([doc.page_content for doc in context_documents])
+    conversation_prompt = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
+    response_chain = conversation_prompt | LANGUAGE_MODEL
+    return response_chain.invoke({"user_query": user_query, "document_context": context_text})
+</pre>
+
+<p>This function combines the user's query and the context from related document chunks to generate an answer using the language model. The model is prompted with the query and context to produce a relevant and concise response.</p>
+
+<h2>10. Handling User Input and Displaying the Output</h2>
+
+<pre>
+uploaded_pdf = st.file_uploader(
+    "Upload your Document(PDF)",
+    type = "pdf",
+    help = "Upload a pdf file.",
+    accept_multiple_files = False
+)
+</pre>
+
+<p>This section of the code sets up the user interface for uploading a PDF document. The file uploader accepts only PDF files, and the user can upload one file at a time.</p>
+
+<h2>11. Processing the Document and Generating Responses</h2>
+
+<pre>
+if uploaded_pdf:
+    file_path = save_uploaded_file(uploaded_pdf)
+    raw_documents = load_pdf_documents(file_path)
+    document_chunks = chunk_documents(raw_documents)
+    index_documents(document_chunks)
+
+    st.success("✅ Document processed successfully! You can ask your questions.")
+    user_input = st.chat_input("Ask a question about your document")
+</pre>
+
+<p>Once the PDF is uploaded, the document is processed in the following sequence: saved, loaded, chunked, and indexed. After processing, the user is informed that the document is ready, and they can begin asking questions related to the document.</p>
+
+<h2>12. Generating the Assistant's Response</h2>
+
+<pre>
+if user_input:
+    with st.chat_message("user"):
+        st.write(user_input)  
+
+    with st.spinner("Generating answer..."):
+        related_docs = find_related_documents(user_input)
+        response = generate_answer(user_input, related_docs)
+
+    with st.chat_message("assistant", avatar="🤖"):
+        st.write(response)
+</pre>
+
+<p>Once the user inputs a query, the system retrieves related documents using a similarity search and then generates an answer based on those documents. The result is then displayed as a response from the assistant.</p>
+
+<h2>13. Summary</h2>
+
+<p>This project successfully combines Streamlit and LangChain to build a powerful research assistant capable of answering questions based on the content of uploaded PDF documents. The system handles document processing, chunking, indexing, similarity searching, and generating responses based on user queries. The project showcases how to integrate machine learning and natural language processing with an interactive UI to create a seamless user experience.</p>
